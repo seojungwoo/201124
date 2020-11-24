@@ -1,0 +1,300 @@
+**
+Oracle RANK OVER() 
+jQuery ready , window onload 
+Filter - DispatcherServlet 
+**
+
+
+**Spring Security**
+
+Secure Coding : 보안성 높은 어플리케이션을 구현하기 위해 보안 요소를 고려해 코딩하는 기법을 의미 
+                   (SW의 보안 취약점을 배제하기 위한 코딩 )
+
+Spring Security : 자바 기반 애플리케이션의 보안 기능을 위한 Spring 하위 프레임워크  
+
+기본적인 보안 기능으로 인증 및 인가와 
+강화된 보안 기능으로는 비밀번호 암호화, csrf 방지, 세션관리기능 등을 지원한다 
+
+
+1) 인증(authentication) : 현재 사용자가 누군지 확인 (일반적으로 로그인)
+코드상에서는 authentication은 인증 과정에 사용되는 핵심 객체(로그인 인증 정보 객체)이다 
+로그인 시점에 기존 세션 사용하지 않고 새로 세션 아이디를 발급해준다 
+
+2) 인가 (authorization) : 현재 사용자가 특정 기능을 사용할 권한이 있는지 검사
+
+3) 비밀번호 암호화 : 보안 운영체제의  대표적인 OpenBSD에서 사용하는 암호 인증 메커니즘인
+ 단방향 암호화 해싱함수의 bcrypt 암호화 기법을 이용 
+ 
+4) CSRF(Cross-Site Request Forgery:사이트간 요청 위조 공격 ) 방지
+csrf 방지를 위한 csrf 토큰을 이용 
+
+CSRF(Cross-Site Request Forgery:사이트간 요청 위조 공격 ) 해킹이란 
+사용자 의지와 무관하게 공격자가 의도한 행위를 특정웹사이트에 요청하게 하는 공격을 말한다   
+사용자가 로그인한 상태에서 사이트간 요청 위조 공격 코드가 삽입된  페이지를 동일한 브라우저의 다른 탭에서 
+열면 공격 대상이 되는 웹사이트는 위조된 공격 명령이 믿을 수 있는 사용자로부터 발송된 것으로 판단되어 공격에 노출된다
+대응방안: csrf token을 이용 
+http post 방식( insert, delete , update : 서버의 정보를 변경하는 요청 )의 요청일 경우 
+해당 서버에서 발행한 csrf 토큰을 발급받아 요청시 발급받은 csrf 토큰이 있는 경우에만 실행하게 한다 
+
+5) 세션 관리 기능 
+
+스프링 시큐리티에서는 사용자가 로그인을 통해 인증을 한 이후에는 로그인전 기존 세션을 무효화하고 
+세션을 새롭게 생성하는 방식(로그아웃 후 다시 로그인 할때도 포함)을 통해서 
+선의의 사용자가 인증된 후 악의적인 해커가 인증 세션 ID를 
+재사용하는것을 차단할 수 있다.(세션 하이재킹(가로채기) 공격으로부터 보호) 
+
+
+					
+**Spring Security 개발단계 **
+----------------------------------------------------------------------
+환경설정단계 1~7번까지 
+
+전체 구성 ( Security Filter 가 FrontController(DispatcherServlet) 앞에 배치됨 
+----------------------------------------------------------------------
+  SecurityFilter						FrontControllerServlet
+  DelegatingFilterProxy       		DispatcherServlet - ( spring-web.xml )
+----------------------------------------------------------------------
+  ServletContext <-ServletContextListener (spring-security.xml + spring-model.xml )
+-----------------------------------------------------------------------
+  web application ( web.xml ) 
+----------------------------------------------------------------------
+  web container 	
+-----------------------------------------------------------------------
+1. maven 
+pom.xml : spring security dependency 추가 
+
+2. DB구축, 회원과 권한 테이블을 생성 
+security.sql : src/main/resources 아래에 있는 sql을 확인해서  
+security_member table과 authorities table을 생성한다  
+
+Security Filter  							--       DispatcherServlet 
+ServletContext(security,model설정)	 			  ServletConfig  (springmvc-web설정)
+
+3. web.xml에 Security 설정 
+web.xml : 1) DispatcherServlet 로딩에 앞서 Filter기반 Security 설정과 spring-model ( 로그인 관련 db연동을 통한 
+               인증,인가 처리를 위해) 설정정보를 ServletContextListener를 이용해 로딩
+            2) DispatcherServlet은 ServletConfig를 이용해 spring web 관련 설정을 로딩
+            3) Security Filter 를 등록한다   	
+            
+4. spring-security.xml : Spring Security 설정 ( 로그인 , 로그아웃 , 인증,인가 제어방식, csrf 공격 방지 등을 설정 )
+
+5. spring-model.xml : Spring Security를 위해 ServletContextListener 를 이용해 로딩하므로 
+    컨트롤러 계열은 제외하고 model 계층만 빈을 생성하도록 설정한다 
+
+
+6. spring-web.xml : 컨트롤러 영역에서 인증,인가를 위한 @Secure 어노테이션을 사용하기 위한 설정 
+	<!-- Annotation 기반 spring security를 사용하기 위한 설정
+		 Controller 영역에서 아래와 같은 @Secure 어노테이션을 사용해야 하므로 
+		 컨트롤러 영역 객체를 생성하는 spring-web.xml에서  정의한다 
+		 @Secured("ROLE_MEMBER")
+	 -->
+<security:global-method-security secured-annotations="enabled" />
+
+7. MemberAuthenticationProvider : Spring Security 인증(로그인체크) 및 인가(권한체크) 로직을 정의한 클래스 
+   MemberMapper.xml , MemberServiceImpl 의 로그인 관련 메서드도 함께 확인한다 
+----------------------------------------------------------
+구현 및 활용단계 8 ~ 10번까지 
+----------------------------------------------------------
+									     	
+8. Controller영역 : @Secure 어노테이션을 이용해 인증,인가체크
+                                 회원가입 및 회원수정서비스에서 인증,인가 처리를 확인  
+                          SpringSecurity 로 인증된 회원객체를 다루는 방법         
+                          
+  HomeController 와 MemberController , AdminController에서 적용사례를 확인한다                                
+  ex) 
+  /* @Secure 어노테이션을 이용해 권한이 부여된 대상들만 서비스를 제공받도록 설정한다 
+	 * 관리자만 들어가야 할 경우에는 아래와 같이 @Secured어노테이션을 명시하면 된다 
+	 */
+	@Secured("ROLE_ADMIN")
+	@RequestMapping("adminMain.do")
+	public String adminMain() {
+		System.out.println("adminMain");
+		return "admin/main.tiles";
+	}                      
+                         
+    만약 두 가지 이상의 권한이 필요하다면  
+   @Secured({"ROLE_ADMIN","ROLE_MANAGER"}) 와 같이 표현하면 된다 
+                      
+9. MemberServiceImpl : 비밀번호 암호화 처리 및 회원등록시 권한도 함께 등록(트랜잭션 처리해야 한다)
+--------------------------------------------------------
+spring-security.xml에 다음과 같이 설정 
+<!-- 비밀번호 암호화를 위한 설정 -->
+<bean id="passwordEncoder"
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+--------------------------------------------------------		
+MemberServiceImpl에서 패스워드 암호화를 위한 객체를 주입받는다 
+
+@Resource
+private BCryptPasswordEncoder passwordEncoder;		
+// 회원가입시 반드시 권한까지 부여되도록 트랜잭션 처리한다
+	@Transactional
+	@Override
+	public void registerMember(MemberVO vo) {
+		// 비밀번호를 bcrypt 알고리즘으로 암호화하여 DB에 저장한다
+		String encodedPwd = passwordEncoder.encode(vo.getPassword());
+		vo.setPassword(encodedPwd);
+		memberMapper.registerMember(vo);	
+		Authority authority = new Authority(vo.getId(), "ROLE_MEMBER");
+		memberMapper.registerRole(authority);
+	}
+
+	@Override
+	public void updateMember(MemberVO memberVO) {
+		// 변경할 비밀번호를 암호화한다
+		String encodePassword = passwordEncoder.encode(memberVO.getPassword());
+		memberVO.setPassword(encodePassword);
+		memberMapper.updateMember(memberVO);
+	}
+
+
+10. spring security custom tag 를 이용해 view를 구현 
+views/member/login_fail.jsp 로그인실패시 실행되는 화면 
+views/template/left.jsp 로그인 화면 및 로그인 인증 후 변경되는 화면처리, 로그아웃 ( spring security taglib 를 사용 ) 
+views/member/registerForm.jsp 회원가입페이지, post방식 정보 전달시 처리해야 하는 사항 
+                                  아이디 중복체크 ajax post 방식으로 정보전달시 체크해야 하는 사항			
+views/member/updateForm.jsp  Security 적용시 세션에서 인증회원정보를 추출하는 사례                                   			  
+						   
+						   
+** View : spring-security-taglibs 조건 표현**
+<%-- spring security custom tag 선언부 --%>
+<%@taglib prefix="tiles"  uri="http://tiles.apache.org/tags-tiles" %>  
+ 
+ 
+인증 안된(로그인 안한) 사용자 메뉴 : 인증되면 안보여야 하는 메뉴 
+<sec:authorize access="!isAuthenticated()">
+	<li><a href="${pageContext.request.contextPath}/login_form.do">로그인</a></li>
+	<li><a href="${pageContext.request.contextPath}/join_member_form.do">회원가입</a></li>
+</sec:authorize>
+
+인증된(로그인한) 사용자 메뉴 : 인증 안된상태에서 안보여야 하는 메뉴
+<sec:authorize access="isAuthenticated()">
+	로그아웃
+</sec:authorize>
+		  
+구체적인 ROLE을 판단해야 할 경우 		  
+<sec:authorize access="hasRole('ROLE_ADMIN') and hasRole('ROLE_MEMBER')">
+<p>반드시 ROLE_ADMIN과 ROLE_MEMBER 권한이 있어야 이 부분을 볼 수 있습니다</p>
+</sec:authorize>
+<sec:authorize access="hasAnyRole('ROLE_ADMIN','ROLE_MEMBER')">
+<p> ROLE_ADMIN 또는 ROLE_MEMBER 권한이 있으면 볼 수 있습니다 </p>
+</sec:authorize>
+
+인증 회원 정보를 View에서 제공해야 할 경우 
+1)  <sec:authentication property="principal.name"/>님 회원정보수정되었습니다. 
+2)
+<sec:authorize access="hasRole('ROLE_ADMIN')">
+<%-- 아래와 같이 mvo 라는 특정 변수에 담아서  사용할 수도 있다 --%>
+<sec:authentication var="mvo" property="principal" />  
+ ${mvo.address}에 사는  ${mvo.name}님  카페입장 환영!
+
+
+POST 전송 방식시 csrf token 처리   
+<%-- 
+	spring security login, logout은 다음과 같은 처리가 필요하다
+	로그인,로그아웃은 모두 post 방식 요청으로 해야 하고  csrf 토큰처리가 필요하다
+	만약 post 방식 전송시 csrf 토큰이 없으면 권한없음으로 인식되어 accessDeniedView.jsp 로 응답된다 
+ --%>
+1) 로그인 
+<sec:authorize access="!hasRole('ROLE_MEMBER')">
+	<br>
+	<form action="${pageContext.request.contextPath}/login.do"
+		method="post" id="loginForm">
+		<%-- 
+		 Spring Security에서는 csrf 해킹방지를 위해
+		 post방식 정보전송일때는 반드시 csrf 토큰을 삽입해야 전송이 된다
+		 아래 security tag를 쓰면 hidden tag 가 자동 생성된다 
+		 --%>
+		<sec:csrfInput/><%-- csrf 토큰 --%>
+		아이디 <input type="text" name="id" size="10"><br>
+		패스워드 <input type="password" name="password" size="10"><br>
+		<input type="submit" value="로그인">
+	</form>
+</sec:authorize>
+
+2) 로그아웃  
+<%-- spring security login, logout은 다음과 같은 처리가 필요하다
+	로그인,로그아웃은 모두 post 방식 요청으로 해야 하고  csrf 토큰처리가 필요하다 --%>
+<sec:authorize access="hasRole('ROLE_MEMBER')">
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$("#logoutAction").click(function() {
+				$("#logoutForm").submit();
+			});
+		});
+	</script>
+	<a href="#" id="logoutAction">로그아웃</a>
+	<form id="logoutForm"
+		action="${pageContext.request.contextPath}/logout.do" method="post"
+		style="display: none">
+		<sec:csrfInput />
+	</form>
+</sec:authorize>
+
+3) Ajax Post 방식 전송 
+// spring security 4 적용시 ajax post 방식은 아래와 같이 beforeSend property에서 csrf 값을 셋팅해야 함 
+$.ajax({
+		   type:"post",
+		   url:"${pageContext.request.contextPath}/idcheckAjax.do",				
+		   data:"id="+id,	
+		   beforeSend : function(xhr){   /*데이터를 전송하기 전에 헤더에 csrf값을 설정한다*/
+            xhr.setRequestHeader("${_csrf.headerName}", "${_csrf.token}");
+            },
+		   success:function(data){
+		   }
+		  }//callback			
+		});//ajax
+
+***************************************************************************
+적용테스트 
+
+인증  : 로그인, 로그아웃
+인가  : 카페 , 관리자 
+비밀번호 암호화 : 회원가입 , 회원수정 
+CSRF 방지 : 로그인폼,로그아웃폼,회원가입폼(id 중복체크 ajax),회원수정폼
+*****************************************************************************************
+		
+Security 전체설정과 회원 관리를 제외한다면 아래 사항을 숙지하고 사용하면 됨  
+
+******************************************************************************************
+ 
+컨트롤러 단계에서 아래와 같이 @Secured("권한명") 인가 설정
+@Secured("ROLE_MEMBER") 
+	@RequestMapping("cafe.do")
+	public ModelAndView enterCafe() {		
+		return new ModelAndView();
+	}
+
+View에서 로그인 인증 정보를 출력해야 할 경우 
+기존에는 ${sessionScope.memberVO.name} 과 같은 표현에서  
+<sec:authentication property="principal.name"/> 과 같은 spring security tag형식으로 사용 ( 자세한 사항은 10번이나 코드를 확인 ) 
+ 
+회원 여부 확인시에는 
+ <sec:authorize access="hasRole('ROLE_MEMBER')">
+      회원 화면 요소 
+ </sec>
+ 비회원 여부 확인시에는 
+ <sec:authorize access="!hasRole('ROLE_MEMBER')">
+     비회원 화면 요소 
+ </sec>
+ 
+post 방식 ( insert, delete ,update ) 전송일 때는 csrf 토큰을 명시해서 함께 전송하면 된다 
+<form method="post" action="update.do">
+<sec:csrfInput/>
+<input type="text" name="address">
+</form>
+
+
+
+참고) 
+로그인 되지 않은 상태확인 
+<sec:authorize access="isAnonymous()"></sec:authorize>
+로그인 된 상태확인 
+<sec:authorize access="isAuthenticated()"></sec:authorize>
+관리자 권한확인 
+<sec:authorize access="hasRole('ROLE_ADMIN')"></sec:authorize>
+관리자권한 아닌지 확인 
+<sec:authorize access="!hasRole('ROLE_ADMIN')"></sec:authorize>
+권한 중 하나라도 있으면 true 
+<sec:authorize access="hasAnyRole('ROLE_ADMIN','ROLE_MANAGER')"></sec:authorize>
+여러 권한이 함께 있어야 한다면 
+<sec:authorize access="hasRole('ROLE_USER')  and  hasRole('ROLE_ADMIN')"></sec:authorize>
