@@ -6,7 +6,10 @@
  ${mvo.address}에 사는 
 
 
- ${mvo.name}님  카페입장 환영!!!
+
+ ${mvo.name}님  카페입장 환영!!! 8 9
+
+
 
 <br><br>
 총 회원수 ${requestScope.count}명 
