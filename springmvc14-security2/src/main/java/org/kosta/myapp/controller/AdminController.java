@@ -16,4 +16,6 @@ public class AdminController {
 		return "admin/main.tiles";
 	}
 	public void test1() {}
+	public void test2() {}
+	
 }
