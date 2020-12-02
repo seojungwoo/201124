@@ -15,4 +15,5 @@ public class AdminController {
 		System.out.println("adminMain");
 		return "admin/main.tiles";
 	}
+	public void test1() {}
 }
