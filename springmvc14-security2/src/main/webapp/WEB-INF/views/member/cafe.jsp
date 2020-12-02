@@ -4,19 +4,7 @@
 <%@taglib prefix="sec"  uri="http://www.springframework.org/security/tags"%> 
 <sec:authentication var="mvo" property="principal" />  
  ${mvo.address}에 사는 
-
-<<<<<<< main
-
-
- ${mvo.name}님  카페입장 환영!!! 8 9 0 1
-
-
-=======
-
- ${mvo.name}님  카페입장 환영!!!
->>>>>>> 3c66f17 1
-
-<br><br>
+ ${mvo.name}님  카페입장 환영!!! 8 9 9
 총 회원수 ${requestScope.count}명 
 
 
