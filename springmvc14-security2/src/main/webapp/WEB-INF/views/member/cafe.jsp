@@ -5,7 +5,7 @@
 <sec:authentication var="mvo" property="principal" />  
  ${mvo.address}에 사는 
 
- ${mvo.name}님  카페입장 환영!!! 7
+ ${mvo.name}님  카페입장 환영!!! 8
 
 <br><br>
 총 회원수 ${requestScope.count}명 
